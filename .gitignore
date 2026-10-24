@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+node_modules/
+.DS_Store
+*.user
+*.log
