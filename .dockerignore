@@ -1,0 +1,7 @@
+.git
+**/bin
+**/obj
+**/*.db*
+.env
+node_modules
+docs/screenshots
