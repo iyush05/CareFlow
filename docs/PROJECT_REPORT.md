@@ -150,7 +150,7 @@ Import a CSV using the supplied five-column template. Parse up to 500 rows, vali
 - **Average length of stay:** average elapsed days among admissions discharged in the selected window.
 - **Readmission:** an eligible discharge with at least one subsequent admission for the same patient from discharge time through 30 days later. Each discharge contributes at most one positive case. The denominator includes discharges in a window of the selected duration ending 30 days before now. This avoids calling unobserved recent discharges negative outcomes. If no eligible discharges exist, show no rate.
 
-This prototype does not distinguish planned readmissions or transfers and does not adjust for case mix. Diagnosis/history are available for descriptive review, but causal risk-factor modeling is not claimed.
+This prototype does not distinguish planned readmissions or transfers and does not adjust for case mix. The Reports screen compares eligible discharges, readmissions, rates, and average stay by reason for admission. This supports descriptive factor exploration, but causal risk-factor modeling is not claimed.
 
 ## Input validation and error handling
 Required and maximum-length field annotations, enum restrictions, valid birth-date ranges, date ordering, foreign-key existence, active-bed checks, CSV-size limits, uniqueness constraints, and relationship restrictions protect data integrity. Expected validation errors return 400; missing records 404; relationship/uniqueness conflicts 409; unauthorized/forbidden 401/403; unconfigured AI 503; provider failures 502. Unexpected failures use generic Problem Details without exposing credentials. The UI shows errors within forms or an accessible status notification.
