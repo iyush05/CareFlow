@@ -4,6 +4,10 @@
 
 ![CareFlow dashboard](docs/screenshots/dashboard.png)
 
+## Running result
+
+The completed local Docker deployment is available at **http://localhost:5080**, backed by Microsoft SQL Server. Start/restart with `docker compose up -d`. Stop the `careflow` container before using the alternative SQLite launcher on the same port.
+
 ## Start locally
 
 Prerequisite: .NET 10 SDK. On this machine a temporary SDK is also available at `/tmp/careflow-dotnet`.
@@ -89,6 +93,7 @@ For a different Playwright installation set `PLAYWRIGHT_MODULE` to its module pa
 | API reference and testing notes | [docs/API.md](docs/API.md) |
 | Verification evidence | [docs/VERIFICATION.md](docs/VERIFICATION.md) |
 | Final evaluation demo and contributions | [docs/EVALUATION.md](docs/EVALUATION.md) |
+| Sample approved care-plan PDF | [docs/sample-care-plan.pdf](docs/sample-care-plan.pdf) |
 | PowerPoint deck | [docs/CareFlow-Presentation.pptx](docs/CareFlow-Presentation.pptx) |
 | SQL Server initial schema | [deploy/schema.sql](deploy/schema.sql) |
 

@@ -23,3 +23,9 @@ Readmission metrics are descriptive, not a validated prediction model. Generated
 
 ## Planned evaluation
 Admin sign-in → inspect dashboard → create patient → allocate free bed → add clinical note → generate and edit draft → approve plan → discharge → schedule follow-up → export report. Show staff restrictions and rejected duplicate bed allocation. Contributions are a template until actual team members provide their work.
+
+## Final delivery status
+- Implemented: API, SQL Server model, eight domain CRUD workflows, authentication/authorization, responsive dashboard, cohort comparisons, care-plan drafting/review, import/export, and follow-ups.
+- Verified: Docker app with SQL Server, 20 final API checks, desktop/mobile browser workflows including approved PDF output.
+- Delivered: project report/diagrams, deployment/API guides, Postman collection, screenshots, sample PDF, 19-slide PowerPoint, and incremental local Git commits.
+- External tasks: owner will push to GitHub; no cloud destination or AI provider credentials were supplied. See VERIFICATION.md for exact evidence and limitations.
