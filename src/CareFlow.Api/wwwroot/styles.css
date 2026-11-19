@@ -99,16 +99,22 @@ button.small {
   display: flex;
   flex-direction: column;
   position: fixed;
+  top: 0;
+  left: 0;
   width: 238px;
   height: 100vh;
   height: 100dvh;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overflow: hidden;
   padding-bottom: max(22px, env(safe-area-inset-bottom));
   z-index: 5;
 }
-.sidebar > * {
-  flex-shrink: 0;
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  padding-bottom: 20px;
 }
 .brand {
   display: flex;
@@ -176,8 +182,10 @@ button.small {
   background: #f4f7f5;
 }
 .sidebar-foot {
-  margin-top: auto;
-  padding: 20px 10px 0;
+  flex: 0 0 auto;
+  padding: 18px 10px 0;
+  border-top: 1px solid var(--line);
+  background: #fff;
 }
 .support {
   background: var(--bg);
@@ -186,7 +194,7 @@ button.small {
   border-radius: 10px;
   font-size: 0.83rem;
   line-height: 1.6;
-  margin-bottom: 22px;
+  margin: 24px 10px 0;
 }
 .support strong {
   display: block;
