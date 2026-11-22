@@ -11,3 +11,6 @@ node_modules/
 .DS_Store
 *.user
 *.log
+
+# Local project documentation and study materials
+/docs/
