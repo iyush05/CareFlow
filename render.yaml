@@ -1,0 +1,27 @@
+# Deploy with Render > New > Blueprint. Secrets are entered in Render, never Git.
+services:
+  - type: web
+    name: careflow
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: PORT
+        value: "8080"
+      - key: DatabaseProvider
+        value: PostgreSql
+      - key: ConnectionStrings__Hospital
+        sync: false
+      # Enter true for the first deployment, then change to false in Render.
+      # sync:false prevents later Blueprint syncs from enabling it again.
+      - key: InitializeDatabase
+        sync: false
+      - key: Bootstrap__Email
+        sync: false
+      - key: Bootstrap__Password
+        sync: false

@@ -31,6 +31,8 @@ ad=a.call('admissions','POST',ad,201);aid=ad['id'];a.call('admissions','POST',{*
 a.call('beds/'+str(free['id']),'PUT',{**free,'inService':False},400);ok('Occupied bed cannot go out of service')
 note=a.call('notes','POST',{'admissionId':aid,'instructions':'Attend the follow-up arranged by your clinician.'},201)
 draft=a.call('hospital/generate-plan','POST',{'admissionId':aid,'useAi':False});assert draft['source']=='Template' and 'Attend the follow-up' in draft['content'];ok('Template drafting preserves clinician instructions')
+if os.getenv('CAREFLOW_TEST_AI') == '1':
+ ai=a.call('hospital/generate-plan','POST',{'admissionId':aid,'useAi':True});assert ai['source']=='AI draft' and ai['content'].strip() and ai['approved'] is False;ok('Live AI drafting with synthetic instructions returns an unapproved draft')
 plan=a.call('plans','POST',{'admissionId':aid,'content':draft['content'],'source':draft['source'],'approved':False},201)
 f=a.call('followups','POST',{'dischargePlanId':plan['id'],'scheduledAt':(now+timedelta(days=7)).isoformat(),'clinic':'Test clinic','completed':False},201)
 f['completed']=True;a.call('followups/'+str(f['id']),'PUT',f);ok('Care plan and follow-up CRUD')

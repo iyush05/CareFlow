@@ -4,6 +4,10 @@
 
 ![CareFlow dashboard](docs/screenshots/dashboard.png)
 
+## Deploy free on Render + Neon
+
+Use the included [Render Blueprint](render.yaml) and [step-by-step deployment guide](deploy/RENDER_NEON.md). The public deployment runs the app in Production with Neon PostgreSQL; patient records and authentication keys persist across Render restarts. SQL Server remains supported for the existing local Docker setup. A fresh Neon database starts with your own administrator account, without the development demo users or patients.
+
 ## Running result
 
 The completed local Docker deployment is available at **http://localhost:5080**, backed by Microsoft SQL Server. Start/restart with `docker compose up -d`. Stop the `careflow` container before using the alternative SQLite launcher on the same port.
@@ -58,9 +62,34 @@ Use a trusted server certificate and `TrustServerCertificate=False` outside loca
 - Validated CSV file import, Excel-compatible CSV report export, print/save-to-PDF care plans, and optional AI drafting.
 - Swagger, Postman collection, real HTTP integration tests, browser smoke tests, Docker configuration, and GitHub Actions CI.
 
-## AI configuration
+## Gemini AI configuration
 
-Set `AI__ApiKey` in the server environment. Optionally set `AI__Endpoint` (HTTPS chat-completions-compatible endpoint) and `AI__Model`. The default model setting is an example; select a model available to your account. In Discharge studio choose **AI plain-language draft**. The server sends the diagnosis and clinician-note text; patient name/record-number fields are not included automatically. Do not enter identifying details in notes intended for external processing.
+Discharge studio's **AI plain-language draft** uses Gemini through Google's [OpenAI-compatible REST endpoint](https://ai.google.dev/gemini-api/docs/openai). The default model is `gemini-3.5-flash-lite`, which Google lists with a [free tier](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite); availability and quotas depend on your account. Dashboard analytics are calculated from the database and do not call an LLM.
+
+For Docker, open the existing **`.env` in the project root** and fill in this line with your Google AI Studio key. Keep the existing `SQL_PASSWORD` value; do not overwrite an existing `.env` with the example.
+
+```dotenv
+AI_API_KEY=your_gemini_api_key_here
+AI_MODEL=gemini-3.5-flash-lite
+```
+
+Then apply the configuration and rebuild the application:
+
+```bash
+docker compose up --build -d careflow
+```
+
+Compose maps `AI_API_KEY` to the backend's `AI__ApiKey` setting. `.env` is excluded from Git and the Docker build context. Never put the key in frontend JavaScript, HTML, or committed `appsettings.json`. You can optionally set `AI_ENDPOINT` in `.env` to override the full HTTPS chat-completions URL.
+
+For the alternative SQLite launcher, `.env` is **not loaded automatically**. Set the server environment variables before launching (Bash example prompts without displaying or recording the key in shell history):
+
+```bash
+bash -c 'read -rsp "Gemini API key: " AI__ApiKey; echo; export AI__ApiKey; exec bash scripts/run-local.sh'
+```
+
+The model and endpoint default to Gemini in `appsettings.json`; override them with `AI__Model` and `AI__Endpoint` environment variables if needed. Restart the application after changing settings.
+
+In **Discharge studio**, select an admission with clinician instructions, choose **AI plain-language draft**, and generate the draft. The server sends the diagnosis and clinician-note text; patient name/record-number fields are not included automatically. Use synthetic data for this prototype: Google's free tier can use submitted content to improve its products, as described on its pricing page. Do not enter identifying details in notes intended for external processing. If generation fails, check the key, model access, and quota in Google AI Studio; the structured template remains available.
 
 Without credentials, use **Structured template**. Templates are explicitly labeled and do not pretend to be AI output. AI failures return a clear error. Drafting never automatically approves a plan; an authorized clinician must review it. API-key integration is implemented, but a live provider call requires your configured credentials.
 
@@ -70,16 +99,22 @@ With the local development server running:
 
 ```bash
 python3 tests/api_smoke.py
+dotnet run --project tests/AiResponseChecks
 node --check src/CareFlow.Api/wwwroot/app.js
 dotnet build src/CareFlow.Api -c Release
 ```
+
+To also test live Gemini drafting with a temporary synthetic admission, run `CAREFLOW_TEST_AI=1 python3 tests/api_smoke.py`. This consumes one provider request and requires a configured key and available quota.
 
 Browser checks use Playwright plus installed Chrome:
 
 ```bash
 npm install --prefix /tmp/careflow-browser playwright
 node tests/browser-smoke.cjs
+node tests/care-plan-browser.cjs
 ```
+
+The care-plan browser checks use mocked API records to verify Markdown preview, editing, approval, printing, and sanitization without changing saved patient data. Markdown assets are served locally; their versions and licenses are in `src/CareFlow.Api/wwwroot/vendor`.
 
 For a different Playwright installation set `PLAYWRIGHT_MODULE` to its module path. Open `/swagger` in Development, or import `docs/CareFlow.postman_collection.json` into Postman. Obtain CSRF before login and refresh it after login; the Postman collection handles token capture.
 

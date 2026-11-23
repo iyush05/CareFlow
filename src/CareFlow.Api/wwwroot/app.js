@@ -428,7 +428,7 @@ function plansPage() {
       )
       .join(
         "",
-      )}</select></div>${selected ? `<div class="notice"><strong>${esc(selected.diagnosis)}</strong><br>Admitted ${date(selected.admittedAt)}<br>${selected.dischargedAt ? "Discharged " + date(selected.dischargedAt) : "Currently in care"}</div><h3>Clinical instructions</h3>${notes.map((n) => `<div class="field"><p class="subtitle">${esc(n.instructions)}</p><div class="actions" style="margin-top:10px">${editButtons("notes", n.id)}</div></div>`).join("") || '<p class="subtitle">No instructions yet.</p>'}<button data-add="notes">${icon("plus")} Add clinical note</button><hr style="border:0;border-top:1px solid var(--line);margin:24px 0"><div class="field"><label for="generation-mode">Drafting method</label><select id="generation-mode"><option value="template">Structured template</option><option value="ai">AI plain-language draft</option></select></div><p class="subtitle" style="font-size:.75rem;margin-bottom:16px">AI drafting sends the diagnosis and note text to your configured provider. Avoid identifying details in notes.</p><button class="primary" id="generate" ${notes.length ? "" : "disabled"}>${icon("spark")} Generate draft</button>` : '<div class="empty">Select a patient to begin their care plan.</div>'}</div></section><div><div class="notice">All generated plans are drafts. A clinician must verify the instructions before approving and sharing them.</div><section class="paper"><div class="paper-header"><div><h2>CareFlow</h2><p class="subtitle">Your discharge care plan</p></div><div>${badge(plan?.approved ? "Reviewed & approved" : "Draft", plan?.approved ? "" : "amber")}<p class="subtitle" style="margin-top:8px;font-size:.75rem">${esc(plan?.source || "Not generated")}</p></div></div>${selected ? `<p class="subtitle" style="margin-bottom:20px">${esc(person(selected.patientId)?.name)} · ${esc(person(selected.patientId)?.medicalRecordNumber)}</p><textarea id="plan-content" aria-label="Discharge care plan" placeholder="Generate a draft from clinical instructions, or write your care plan here.">${esc(plan?.content || "")}</textarea><div id="print-content" class="print-content"></div>` : '<div class="empty">Your care plan will appear here.</div>'}</section>${selected ? `<div class="paper-actions"><label class="check" style="margin:20px 0"><input id="approve" type="checkbox" ${plan?.approved ? "checked" : ""}> I have reviewed these instructions for clinical accuracy and approve this plan.</label><div class="actions"><button class="primary" id="save-plan">Save care plan</button><button id="print-plan">${icon("download")} Print / save PDF</button>${plan && !plan.approved ? `<button class="danger" data-delete="plans" data-id="${plan.id}">Delete draft</button>` : ""}</div></div>` : ""}</div></div>`
+      )}</select></div>${selected ? `<div class="notice"><strong>${esc(selected.diagnosis)}</strong><br>Admitted ${date(selected.admittedAt)}<br>${selected.dischargedAt ? "Discharged " + date(selected.dischargedAt) : "Currently in care"}</div><h3>Clinical instructions</h3>${notes.map((n) => `<div class="field"><p class="subtitle">${esc(n.instructions)}</p><div class="actions" style="margin-top:10px">${editButtons("notes", n.id)}</div></div>`).join("") || '<p class="subtitle">No instructions yet.</p>'}<button data-add="notes">${icon("plus")} Add clinical note</button><hr style="border:0;border-top:1px solid var(--line);margin:24px 0"><div class="field"><label for="generation-mode">Drafting method</label><select id="generation-mode"><option value="template">Structured template</option><option value="ai">AI plain-language draft</option></select></div><p class="subtitle" style="font-size:.75rem;margin-bottom:16px">AI drafting sends the diagnosis and note text to your configured provider. Avoid identifying details in notes.</p><button class="primary" id="generate" ${notes.length ? "" : "disabled"}>${icon("spark")} Generate draft</button>` : '<div class="empty">Select a patient to begin their care plan.</div>'}</div></section><div><div class="notice">All generated plans are drafts. A clinician must verify the instructions before approving and sharing them.</div><section class="paper"><div class="paper-header"><div><h2>CareFlow</h2><p class="subtitle">Your discharge care plan</p></div><div>${badge(plan?.approved ? "Reviewed & approved" : "Draft", plan?.approved ? "" : "amber")}<p class="subtitle" style="margin-top:8px;font-size:.75rem">${esc(plan?.source || "Not generated")}</p></div></div>${selected ? `<p class="subtitle" style="margin-bottom:20px">${esc(person(selected.patientId)?.name)} · ${esc(person(selected.patientId)?.medicalRecordNumber)}</p><div id="print-content" class="care-plan-content">${renderCarePlan(plan?.content || "")}</div><div class="paper-editor-tools"><button id="edit-plan" aria-expanded="false" aria-controls="plan-content">Edit care plan</button></div><textarea id="plan-content" aria-label="Discharge care plan" placeholder="Generate a draft from clinical instructions, or write your care plan here." hidden>${esc(plan?.content || "")}</textarea>` : '<div class="empty">Your care plan will appear here.</div>'}</section>${selected ? `<div class="paper-actions"><label class="check" style="margin:20px 0"><input id="approve" type="checkbox" ${plan?.approved ? "checked" : ""}> I have reviewed these instructions for clinical accuracy and approve this plan.</label><div class="actions"><button class="primary" id="save-plan">Save care plan</button><button id="print-plan">${icon("download")} Print / save PDF</button>${plan && !plan.approved ? `<button class="danger" data-delete="plans" data-id="${plan.id}">Delete draft</button>` : ""}</div></div>` : ""}</div></div>`
   );
 }
 function followupsPage() {
@@ -790,6 +790,7 @@ function bind() {
         });
         $("#plan-content").value = result.content;
         $("#plan-content").dataset.source = result.source;
+        $("#print-content").innerHTML = renderCarePlan(result.content);
         $("#approve").checked = false;
         toast(result.source + " ready. Review and save it.");
       } catch (err) {
@@ -824,8 +825,17 @@ function bind() {
         e.target.disabled = false;
       }
     };
+  if ($("#edit-plan"))
+    $("#edit-plan").onclick = (e) => {
+      const editor = $("#plan-content");
+      editor.hidden = !editor.hidden;
+      e.currentTarget.setAttribute("aria-expanded", String(!editor.hidden));
+      e.currentTarget.textContent = editor.hidden ? "Edit care plan" : "Done editing";
+      if (!editor.hidden) editor.focus();
+    };
   if ($("#plan-content"))
     $("#plan-content").oninput = () => {
+      $("#print-content").innerHTML = renderCarePlan($("#plan-content").value);
       $("#approve").checked = false;
     };
   if ($("#print-plan"))
@@ -837,7 +847,7 @@ function bind() {
         !$("#approve").checked
       )
         return toast("Save and approve the current plan before printing.");
-      $("#print-content").textContent = p.content;
+      $("#print-content").innerHTML = renderCarePlan(p.content);
       window.print();
     };
   if ($("#template"))

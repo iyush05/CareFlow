@@ -699,6 +699,68 @@ label {
   line-height: 1.9;
   font-size: 0.9rem;
 }
+.paper textarea[hidden] {
+  display: none;
+}
+.paper-editor-tools {
+  margin: 20px 0;
+}
+.care-plan-content {
+  line-height: 1.8;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.care-plan-content:empty::before {
+  content: "Generate a draft from clinical instructions, or choose Edit care plan to write one.";
+  color: var(--muted);
+}
+.care-plan-content > :first-child {
+  margin-top: 0;
+}
+.care-plan-content :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.3em 0 0.5em;
+  line-height: 1.35;
+  color: var(--green);
+  break-after: avoid;
+}
+.care-plan-content h1 {
+  font-size: 1.5rem;
+}
+.care-plan-content h2 {
+  font-size: 1.25rem;
+}
+.care-plan-content :is(h3, h4, h5, h6) {
+  font-size: 1.05rem;
+}
+.care-plan-content :is(p, ul, ol, blockquote, pre, table) {
+  margin: 0 0 1em;
+}
+.care-plan-content :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.care-plan-content li {
+  margin: 0.3em 0;
+}
+.care-plan-content li > p {
+  margin-bottom: 0.3em;
+}
+.care-plan-content blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 1em;
+}
+.care-plan-content pre {
+  white-space: pre-wrap;
+}
+.care-plan-content table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.care-plan-content :is(th, td) {
+  border: 1px solid var(--line);
+  padding: 8px;
+  white-space: normal;
+}
 .paper-header {
   border-bottom: 1px solid var(--line);
   padding-bottom: 20px;
@@ -1068,6 +1130,7 @@ dialog::backdrop {
   .editor-grid > .panel,
   .footer,
   .paper-actions,
+  .paper-editor-tools,
   #toast,
   .notice {
     display: none !important;
@@ -1086,17 +1149,13 @@ dialog::backdrop {
   .paper textarea {
     display: none;
   }
-  .print-content {
-    white-space: pre-wrap;
+  .care-plan-content {
     line-height: 1.8;
     display: block !important;
   }
   .paper-header {
     display: flex;
   }
-}
-.print-content {
-  display: none;
 }
 
 .heading .actions select {

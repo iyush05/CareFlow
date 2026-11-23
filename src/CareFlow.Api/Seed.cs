@@ -4,7 +4,7 @@ namespace CareFlow;
 
 public static class Seed
 {
-    public static async Task Admin(HospitalDb db, IPasswordHasher<AppUser> hasher, IConfiguration config) { if (await db.Users.AnyAsync()) return; var password = config["Bootstrap:Password"] ?? throw new InvalidOperationException("Set Bootstrap__Password for first deployment."); if (password.Length < 14) throw new InvalidOperationException("Bootstrap password requires 14 characters."); var user = new AppUser { Email = config["Bootstrap:Email"] ?? throw new InvalidOperationException("Set Bootstrap__Email"), Name = "Administrator", Role = "Admin" }; user.PasswordHash = hasher.HashPassword(user, password); db.Users.Add(user); await db.SaveChangesAsync(); }
+    public static async Task Admin(HospitalDb db, IPasswordHasher<AppUser> hasher, IConfiguration config) { if (await db.Users.AnyAsync()) return; var password = config["Bootstrap:Password"] ?? throw new InvalidOperationException("Set Bootstrap__Password for first deployment."); if (password.Length < 14) throw new InvalidOperationException("Bootstrap password requires 14 characters."); var user = new AppUser { Email = (config["Bootstrap:Email"] ?? throw new InvalidOperationException("Set Bootstrap__Email")).Trim().ToLowerInvariant(), Name = "Administrator", Role = "Admin" }; user.PasswordHash = hasher.HashPassword(user, password); db.Users.Add(user); await db.SaveChangesAsync(); }
     public static async Task Run(HospitalDb db, IPasswordHasher<AppUser> hasher)
     {
         if (await db.Users.AnyAsync()) return;

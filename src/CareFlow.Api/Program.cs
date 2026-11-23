@@ -3,11 +3,38 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
-var sqlite = builder.Configuration["DatabaseProvider"] == "Sqlite";
-if (sqlite && !builder.Environment.IsDevelopment()) throw new InvalidOperationException("SQLite is restricted to Development; configure SQL Server for deployment.");
-builder.Services.AddDbContext<HospitalDb>(o => { if (sqlite) o.UseSqlite(builder.Configuration.GetConnectionString("Hospital") ?? "Data Source=careflow.db"); else o.UseSqlServer(builder.Configuration.GetConnectionString("Hospital") ?? throw new InvalidOperationException("Configure ConnectionStrings__Hospital.")); });
+var provider = builder.Configuration["DatabaseProvider"] ?? "SqlServer";
+var render = builder.Configuration.GetValue<bool>("RENDER");
+if (provider == "Sqlite" && !builder.Environment.IsDevelopment()) throw new InvalidOperationException("SQLite is restricted to Development; configure SqlServer or PostgreSql for deployment.");
+builder.Services.AddDbContext<HospitalDb>(o =>
+{
+    var connection = builder.Configuration.GetConnectionString("Hospital");
+    switch (provider)
+    {
+        case "Sqlite": o.UseSqlite(connection ?? "Data Source=careflow.db"); break;
+        case "SqlServer": o.UseSqlServer(connection ?? throw new InvalidOperationException("Configure ConnectionStrings__Hospital.")); break;
+        case "PostgreSql": o.UseNpgsql(connection ?? throw new InvalidOperationException("Configure ConnectionStrings__Hospital."), pg => pg.EnableRetryOnFailure(5)); break;
+        default: throw new InvalidOperationException("DatabaseProvider must be SqlServer, PostgreSql, or Sqlite.");
+    }
+});
+if (provider == "PostgreSql")
+    builder.Services.AddDataProtection().SetApplicationName("CareFlow").PersistKeysToDbContext<HospitalDb>();
+if (render)
+{
+    // Render terminates HTTPS and isolates the container behind its ingress.
+    // Trust only the protocol, never caller-supplied client IPs or host names.
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = 1;
+        o.KnownProxies.Clear();
+        o.KnownIPNetworks.Clear();
+    });
+}
 builder.Services.AddSingleton<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(o => { o.Cookie.Name = "CareFlow.Session"; o.Cookie.HttpOnly = true; o.Cookie.SameSite = SameSiteMode.Strict; o.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; o.ExpireTimeSpan = TimeSpan.FromHours(8); o.Events.OnRedirectToLogin = c => { c.Response.StatusCode = 401; return Task.CompletedTask; }; o.Events.OnRedirectToAccessDenied = c => { c.Response.StatusCode = 403; return Task.CompletedTask; }; });
 builder.Services.AddAuthorization(); builder.Services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
@@ -15,10 +42,11 @@ builder.Services.AddRateLimiter(o => { o.RejectionStatusCode = 429; o.AddPolicy(
 builder.Services.AddControllers().AddJsonOptions(o => { o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles; o.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter()); });
 builder.Services.AddEndpointsApiExplorer(); builder.Services.AddSwaggerGen(); builder.Services.AddHttpClient(); builder.Services.AddProblemDetails();
 var app = builder.Build();
+if (render) app.UseForwardedHeaders();
 if (args.Contains("--schema")) { using var scope = app.Services.CreateScope(); Console.WriteLine(scope.ServiceProvider.GetRequiredService<HospitalDb>().Database.GenerateCreateScript()); return; }
 app.UseExceptionHandler();
 app.Use(async (c, next) => { c.Response.Headers["X-Content-Type-Options"] = "nosniff"; c.Response.Headers["X-Frame-Options"] = "DENY"; c.Response.Headers["Referrer-Policy"] = "same-origin"; c.Response.Headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"; if (c.Request.Path.StartsWithSegments("/api")) c.Response.Headers.CacheControl = "no-store"; await next(); });
-if (!app.Environment.IsDevelopment()) { app.UseHsts(); app.UseHttpsRedirection(); }
+if (!app.Environment.IsDevelopment()) { app.UseHsts(); if (!render) app.UseHttpsRedirection(); }
 app.UseDefaultFiles(); app.UseStaticFiles(); app.UseRouting(); app.UseRateLimiter(); app.UseAuthentication(); app.UseAuthorization();
 app.Use(async (c, next) => { if (c.Request.Path.StartsWithSegments("/api") && !HttpMethods.IsGet(c.Request.Method) && !HttpMethods.IsHead(c.Request.Method)) { try { await c.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(c); } catch (AntiforgeryValidationException) { c.Response.StatusCode = 400; await c.Response.WriteAsJsonAsync(new { error = "Request verification failed. Refresh and try again." }); return; } } await next(); });
 if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }

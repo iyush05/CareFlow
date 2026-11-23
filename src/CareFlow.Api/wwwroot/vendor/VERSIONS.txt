@@ -1,0 +1,4 @@
+marked 18.2.1 — https://marked.js.org
+dompurify 3.5.0 — https://github.com/cure53/DOMPurify
+
+Browser distributions copied unchanged from npm packages; served locally.

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 namespace CareFlow;
 
 public abstract class Entity { public int Id { get; set; } }
@@ -29,15 +30,20 @@ public class ClinicalNote : Entity { [Range(1, int.MaxValue)] public int Admissi
 public class DischargePlan : Entity { [Range(1, int.MaxValue)] public int AdmissionId { get; set; } public Admission? Admission { get; set; } [Required, StringLength(15000)] public string Content { get; set; } = ""; public bool Approved { get; set; } public string Source { get; set; } = "Manual"; public DateTime CreatedAt { get; set; } = DateTime.UtcNow; }
 public class FollowUp : Entity { [Range(1, int.MaxValue)] public int DischargePlanId { get; set; } public DischargePlan? DischargePlan { get; set; } public DateTime ScheduledAt { get; set; } [Required, StringLength(100)] public string Clinic { get; set; } = ""; public bool Completed { get; set; } }
 public class AppUser : Entity { public string Email { get; set; } = ""; public string Name { get; set; } = ""; public string PasswordHash { get; set; } = ""; public string Role { get; set; } = "User"; }
-public class HospitalDb(DbContextOptions<HospitalDb> options) : DbContext(options)
+public class HospitalDb(DbContextOptions<HospitalDb> options) : DbContext(options), IDataProtectionKeyContext
 {
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<Department> Departments => Set<Department>(); public DbSet<Ward> Wards => Set<Ward>(); public DbSet<Bed> Beds => Set<Bed>(); public DbSet<Patient> Patients => Set<Patient>(); public DbSet<Admission> Admissions => Set<Admission>(); public DbSet<ClinicalNote> ClinicalNotes => Set<ClinicalNote>(); public DbSet<DischargePlan> DischargePlans => Set<DischargePlan>(); public DbSet<FollowUp> FollowUps => Set<FollowUp>(); public DbSet<AppUser> Users => Set<AppUser>();
     protected override void OnModelCreating(ModelBuilder m)
     {
         m.Entity<Patient>().HasIndex(p => p.MedicalRecordNumber).IsUnique(); m.Entity<AppUser>().HasIndex(p => p.Email).IsUnique();
         m.Entity<Bed>().HasIndex(b => b.Label).IsUnique(); m.Entity<Department>().HasIndex(d => d.Name).IsUnique();
-        m.Entity<Admission>().HasIndex(a => a.BedId).IsUnique().HasFilter("[DischargedAt] IS NULL");
-        m.Entity<Admission>().HasIndex(a => a.PatientId).IsUnique().HasFilter("[DischargedAt] IS NULL");
+        var activeAdmissionFilter = Database.IsNpgsql() ? "\"DischargedAt\" IS NULL" : "[DischargedAt] IS NULL";
+        m.Entity<Admission>().HasIndex(a => a.BedId).IsUnique().HasFilter(activeAdmissionFilter);
+        m.Entity<Admission>().HasIndex(a => a.PatientId).IsUnique().HasFilter(activeAdmissionFilter);
+        // Birth dates are calendar dates, unlike clinical timestamps which remain UTC.
+        if (Database.IsNpgsql()) m.Entity<Patient>().Property(p => p.DateOfBirth).HasColumnType("date");
+        else m.Ignore<DataProtectionKey>();
         m.Entity<DischargePlan>().HasIndex(p => p.AdmissionId).IsUnique();
         foreach (var fk in m.Model.GetEntityTypes().SelectMany(t => t.GetForeignKeys())) fk.DeleteBehavior = DeleteBehavior.Restrict;
     }
