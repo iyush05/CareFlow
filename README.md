@@ -2,7 +2,7 @@
 
 **Hospital Resource & Patient Readmission Analytics** — a working ASP.NET Core application with a minimalist light interface, SQL Server / Entity Framework Core, role-based authentication, patient workflows, and discharge drafting.
 
-![CareFlow dashboard](docs/screenshots/dashboard.png)
+<img width="1582" height="1035" alt="Screenshot 2026-11-23 at 19 38 38" src="https://github.com/user-attachments/assets/9ceac8fc-775d-4471-9cef-614b939f5510" />
 
 ## Deploy free on Render + Neon
 
